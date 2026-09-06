@@ -1,0 +1,47 @@
+# ---- Python ----
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# ---- Erlang / rebar3 ----
+_build/
+.rebar3/
+rebar.lock
+*.beam
+erl_crash.dump
+
+# ---- Node / Next.js ----
+node_modules/
+.next/
+out/
+*.tsbuildinfo
+
+# ---- Secrets and local config ----
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+!infrastructure/**/*.example.key
+
+# ---- Generated simulator output ----
+# Everything in data/ is reproducible from run_year.py; see apps/simulator/README
+# for the commands. Tracking the 17 MB year_15min.csv.gz would bloat the history
+# for no benefit.
+apps/simulator/data/
+
+# ---- Runtime volumes and logs ----
+*.log
+/volumes/
+/data/
+
+# ---- Editors / OS ----
+.vscode/
+.idea/
+*.swp
+.DS_Store
