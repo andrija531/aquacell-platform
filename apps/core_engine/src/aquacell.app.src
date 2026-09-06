@@ -1,0 +1,18 @@
+{application, aquacell,
+ [{description, "AquaCell real-time core: device twins, MQTT ingest, ramp governor"},
+  {vsn, "0.1.0"},
+  {registered, [aquacell_sup]},
+  {mod, {aquacell_app, []}},
+  {applications,
+   [kernel,
+    stdlib,
+    sasl,
+    gproc,
+    pgo,
+    emqtt
+   ]},
+  {env, []},
+  {modules, []},
+  {licenses, ["Apache-2.0"]},
+  {links, []}
+ ]}.

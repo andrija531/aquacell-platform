@@ -1,0 +1,20 @@
+-sname aquacell
+
+## Set via environment in deployment. Never commit a real cookie.
+-setcookie aquacell_dev_cookie_change_me
+
+## Fleet scale: one twin process per device, plus ingest workers and pgo
+## connections. 50k twins is comfortable for the default limit, but the
+## default is worth raising now rather than discovering it under load.
++P 1048576
+
+## Decision #31 is the reason this matters: dynamic atoms are never garbage
+## collected. If a MAC ever reaches list_to_atom, this limit is the wall the
+## node hits. Left at a deliberate, visible value so the failure is
+## diagnosable rather than mysterious.
++t 1048576
+
+## Async threads for file and port I/O.
++A 32
+
+-heart

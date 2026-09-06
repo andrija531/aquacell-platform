@@ -1,0 +1,37 @@
+%% -*- mode: erlang -*-
+%%
+%% Excludes quicer from the emqtt dependency tree.
+%%
+%% emqtt declares quicer (MQTT over QUIC) unless BUILD_WITHOUT_QUIC is set in
+%% the environment. quicer is a NIF wrapping Microsoft's msquic: building it
+%% needs make, cmake and a C compiler, and it shells out to fetch and patch
+%% msquic sources. Without those the build dies at a compile hook with
+%% "make: not found", which is an opaque failure on a first checkout.
+%%
+%% AquaCell does not use QUIC. Devices are Shelly relays speaking MQTT over
+%% TCP/TLS to EMQX, and EMQX's QUIC listener is disabled in
+%% infrastructure/emqx/emqx.conf. The dependency is pure cost.
+%%
+%% Two things have to line up for this to work, and both are easy to undo by
+%% accident:
+%%
+%%   1. This file must set the variable BEFORE dependencies are resolved.
+%%      It does: rebar3 evaluates the project's rebar.config.script first.
+%%
+%%   2. emqtt must be a GIT dependency, not a Hex one. rebar3 resolves Hex
+%%      dependencies from published package metadata and never evaluates the
+%%      package's rebar.config.script, and emqtt 1.16.0's metadata lists
+%%      quicer as non-optional. Via Hex the variable is simply ignored and
+%%      quicer is fetched anyway. See the comment on the emqtt dep in
+%%      rebar.config.
+%%
+%% If MQTT over QUIC is ever wanted: delete this file, switch emqtt back to
+%% the Hex package, and install a C toolchain. Nothing else depends on the
+%% exclusion.
+
+case os:getenv("BUILD_WITHOUT_QUIC") of
+    false -> os:putenv("BUILD_WITHOUT_QUIC", "1");
+    _AlreadySet -> ok
+end,
+
+CONFIG.

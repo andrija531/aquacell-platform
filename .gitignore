@@ -11,9 +11,10 @@ venv/
 # ---- Erlang / rebar3 ----
 _build/
 .rebar3/
-rebar.lock
 *.beam
 erl_crash.dump
+# rebar.lock is intentionally NOT ignored. core_engine is an application, not
+# a library, so the lock file belongs in the repo for reproducible builds.
 
 # ---- Node / Next.js ----
 node_modules/
