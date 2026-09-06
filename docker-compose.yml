@@ -107,8 +107,13 @@ services:
       MQTT_CORE_PASSWORD: ${MQTT_CORE_PASSWORD:?set MQTT_CORE_PASSWORD in .env}
     # No ports published. Control is via the Erlang console inside the
     # container; Erlang distribution is deliberately not exposed.
+    # `bin/aquacell eval` exits 0 even when the evaluated expression fails, so
+    # a bare match like "true = ...connected()." passes regardless and is worse
+    # than no healthcheck. Grep the printed value instead: grep's exit status
+    # is what Docker reads. Note eval runs against the live node, so the
+    # expression must not call halt/1.
     healthcheck:
-      test: ["CMD", "bin/aquacell", "eval", "true = aquacell_shelly:connected()."]
+      test: ["CMD-SHELL", "bin/aquacell eval 'aquacell_shelly:connected().' | grep -qx true"]
       interval: 15s
       timeout: 10s
       retries: 6
