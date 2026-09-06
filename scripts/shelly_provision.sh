@@ -91,9 +91,45 @@ echo "== 1. identify device =="
 info="$(rpc Shelly.GetDeviceInfo)"
 echo "${info}"
 
-DEVICE_ID="$(python3 -c 'import json,sys; print(json.load(sys.stdin)["id"])' <<<"${info}")"
+DEVICE_ID="$(python3 -c '
+import json, re, sys
+
+d = json.load(sys.stdin)
+
+# Shelly replies in a JSON-RPC envelope over HTTP, so the top-level "id" is the
+# REQUEST number (1), not the device id. The device id lives inside "result"
+# (some firmware/transport combinations use "params" instead). Reading the
+# top-level "id" silently yields 1 and provisions the device as user "1",
+# which the broker then refuses.
+candidates = []
+for container in (d.get("result"), d.get("params"), d):
+    if isinstance(container, dict):
+        v = container.get("id")
+        if isinstance(v, str):
+            candidates.append(v)
+src = d.get("src")
+if isinstance(src, str):
+    candidates.append(src)
+
+for c in candidates:
+    # e.g. shelly1pmg3-28372f3978f4 : model, hyphen, 12 hex digits
+    if re.fullmatch(r"[a-zA-Z0-9]+-[0-9a-fA-F]{12}", c):
+        print(c)
+        sys.exit(0)
+
+print("", end="")
+sys.exit(1)
+' <<<"${info}" || true)"
+
 if [[ -z "${DEVICE_ID}" ]]; then
-    echo "error: could not read device id" >&2
+    echo "error: could not determine the device id from Shelly.GetDeviceInfo." >&2
+    echo "Response was:" >&2
+    echo "${info}" >&2
+    echo >&2
+    echo "Expected an id like shelly1pmg3-28372f3978f4. Refusing to continue:" >&2
+    echo "provisioning with a wrong id sets the username and topic prefix wrong," >&2
+    echo "and the broker then refuses the device in a way that looks like a TLS" >&2
+    echo "failure." >&2
     exit 1
 fi
 echo "device id: ${DEVICE_ID}"
