@@ -76,5 +76,15 @@ init([]) ->
     SupFlags = #{strategy => one_for_one,
                  intensity => 10,
                  period => 60},
-    Children = [],
+    %% POC ONLY. aquacell_shelly is a single MQTT connection on plain
+    %% wildcards, which is item 4 above done the wrong way on purpose: it is
+    %% the shortest path to controlling one real device by hand. Replacing it
+    %% with aquacell_mqtt_ingest_sup is decision #30, and the ramp governor
+    %% must land before this ever addresses more than a bench unit.
+    Children = [#{id => aquacell_shelly,
+                  start => {aquacell_shelly, start_link, []},
+                  restart => permanent,
+                  shutdown => 5000,
+                  type => worker,
+                  modules => [aquacell_shelly]}],
     {ok, {SupFlags, Children}}.

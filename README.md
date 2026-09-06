@@ -39,9 +39,10 @@ measurements of Croatian households. Per-figure reliability is in
 
 ```
 docs/                        Plan of record, reviews, decision register
+scripts/                     Provisioning helpers, Shelly simulator
 apps/
   simulator/                 Stratified tank + synthetic draws       BUILT
-  core_engine/               Erlang/OTP real-time layer              SKELETON
+  core_engine/               Erlang/OTP real-time layer              POC
 infrastructure/              EMQX, TimescaleDB, Redis configuration  CONFIGURED
 edge_scripts/                Shelly mJS safety net                  WRITTEN, UNTESTED
 docker-compose.yml           Local infrastructure
@@ -50,6 +51,10 @@ docker-compose.yml           Local infrastructure
 Directories for the Python scheduler, the Django API and the Next.js dashboard
 do not exist yet. See the build order below for why, and
 `docs/04-decision-register.md` §J for the decisions behind it.
+
+To connect a real Shelly and control it by hand, see
+[`docs/06-shelly-poc-runbook.md`](docs/06-shelly-poc-runbook.md). Read the
+hardware warning at the top of it before wiring anything to a boiler.
 
 ## Build order
 
@@ -165,16 +170,26 @@ Checked on 2026-09-06, on OTP 27 in a container:
   can publish to its own topic, is **disconnected** when it tries another
   device's topic, and is refused a bare `#` subscription. `ws`, `wss` and
   `quic` listeners are confirmed off.
+- The Shelly POC path works end to end against `scripts/fake_shelly.py`:
+  `shelly_ctl:info/1`, `status/1`, `on/1`, `toggle/1` and `power/1` all
+  round-trip over the RPC channel, and cached status arrives via `status_ntf`.
+  A device attempting to forge RPC replies for another device, to command
+  another device, or to use the `shellies/command` broadcast topic is
+  disconnected in all three cases.
 
 ## Known gaps
 
+- No hardware has been involved in any of the above. The POC was verified
+  against a simulated Shelly only.
 - `apps/simulator/requirements.txt` pins `numpy==2.1.3` and `pytest==8.3.4`.
   The tests were last run against numpy 1.26.4 and pytest 9.1.1 and passed;
   the pins have not been verified against a clean install.
-- `edge_scripts/connection_fallback.js` has never run on hardware. It is
-  written from the documented mJS API and nothing more.
-- The supervision tree is empty. Every module listed in `aquacell_sup.erl` is
-  a comment, not code.
+- `edge_scripts/connection_fallback.js` has never run on hardware and is not
+  installed by the POC runbook. It is written from the documented mJS API and
+  nothing more.
+- `aquacell_shelly` is a single wildcard subscriber, which decision #30
+  rejects for the fleet, and there is no ramp governor (#54) in front of it.
+  It is a bench tool.
 - No CI, no linting, no migration tooling (decision #58).
 - No Prometheus or Grafana (decision #57). A fleet without dashboards is
   unoperable.

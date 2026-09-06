@@ -17,4 +17,6 @@
 ## Async threads for file and port I/O.
 +A 32
 
--heart
+## No -heart. In a container the restart policy is the supervisor of last
+## resort, and heart without a correctly exported HEART_COMMAND will kill a
+## node it cannot restart.

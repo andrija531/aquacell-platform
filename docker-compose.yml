@@ -20,7 +20,10 @@ services:
       EMQX_NODE__COOKIE: ${EMQX_NODE_COOKIE:?set EMQX_NODE_COOKIE in .env}
       EMQX_DASHBOARD__DEFAULT_PASSWORD: ${EMQX_DASHBOARD_PASSWORD:?set EMQX_DASHBOARD_PASSWORD in .env}
     ports:
-      - "127.0.0.1:1883:1883"    # MQTT, plaintext, local development only
+      # MQTT plaintext. Defaults to loopback; set MQTT_BIND_ADDR=0.0.0.0 in
+      # .env to let a real Shelly on the LAN reach it. That is a POC
+      # concession, not a deployment posture — see SECURITY in README.md.
+      - "${MQTT_BIND_ADDR:-127.0.0.1}:1883:1883"
       - "127.0.0.1:8883:8883"    # MQTT over TLS — requires certs, see README
       - "127.0.0.1:18083:18083"  # dashboard
     volumes:
@@ -73,6 +76,31 @@ services:
       interval: 10s
       timeout: 5s
       retries: 12
+
+  core_engine:
+    build:
+      context: ./apps/core_engine
+    container_name: aquacell-core-engine
+    restart: unless-stopped
+    depends_on:
+      emqx:
+        condition: service_healthy
+    environment:
+      # Reaches EMQX by service name on the compose network, so this traffic
+      # never leaves the host even when 1883 is published to the LAN.
+      MQTT_HOST: emqx
+      MQTT_PORT: "1883"
+      MQTT_CLIENT_ID: core_engine
+      MQTT_CORE_USERNAME: ${MQTT_CORE_USERNAME:-core_engine}
+      MQTT_CORE_PASSWORD: ${MQTT_CORE_PASSWORD:?set MQTT_CORE_PASSWORD in .env}
+    # No ports published. Control is via the Erlang console inside the
+    # container; Erlang distribution is deliberately not exposed.
+    healthcheck:
+      test: ["CMD", "bin/aquacell", "eval", "true = aquacell_shelly:connected()."]
+      interval: 15s
+      timeout: 10s
+      retries: 6
+      start_period: 20s
 
 volumes:
   emqx-data:
