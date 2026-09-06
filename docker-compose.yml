@@ -19,16 +19,28 @@ services:
       EMQX_NODE__NAME: emqx@127.0.0.1
       EMQX_NODE__COOKIE: ${EMQX_NODE_COOKIE:?set EMQX_NODE_COOKIE in .env}
       EMQX_DASHBOARD__DEFAULT_PASSWORD: ${EMQX_DASHBOARD_PASSWORD:?set EMQX_DASHBOARD_PASSWORD in .env}
+      # Real certificate for the 8883 listener. Defaults to the image's
+      # self-signed pair so local development needs no setup; point these at a
+      # mounted certificate before any device connects over the internet.
+      EMQX_LISTENERS__SSL__DEFAULT__SSL_OPTIONS__CERTFILE: ${MQTT_TLS_CERTFILE:-/opt/emqx/etc/certs/cert.pem}
+      EMQX_LISTENERS__SSL__DEFAULT__SSL_OPTIONS__KEYFILE: ${MQTT_TLS_KEYFILE:-/opt/emqx/etc/certs/key.pem}
     ports:
-      # MQTT plaintext. Defaults to loopback; set MQTT_BIND_ADDR=0.0.0.0 in
-      # .env to let a real Shelly on the LAN reach it. That is a POC
-      # concession, not a deployment posture — see SECURITY in README.md.
-      - "${MQTT_BIND_ADDR:-127.0.0.1}:1883:1883"
-      - "127.0.0.1:8883:8883"    # MQTT over TLS — requires certs, see README
-      - "127.0.0.1:18083:18083"  # dashboard
+      # Plaintext MQTT. Defaults to loopback and should STAY there on any
+      # internet-facing host: core_engine reaches the broker as "emqx" on the
+      # compose network and never needs this published. Set 0.0.0.0 only for
+      # LAN testing.
+      - "${MQTT_TCP_BIND:-127.0.0.1}:1883:1883"
+      # MQTT over TLS. This is the one devices use across the internet.
+      - "${MQTT_TLS_BIND:-127.0.0.1}:8883:8883"
+      # Dashboard. Deliberately hardcoded to loopback — reach it through an
+      # SSH tunnel, never by publishing it:
+      #   ssh -L 18083:127.0.0.1:18083 user@server
+      - "127.0.0.1:18083:18083"
     volumes:
       - ./infrastructure/emqx/emqx.conf:/opt/emqx/etc/emqx.conf:ro
       - ./infrastructure/emqx/acl.conf:/opt/emqx/etc/acl.conf:ro
+      # Certificates live here. Gitignored — generated or issued per host.
+      - ./infrastructure/emqx/certs:/opt/emqx/etc/certs/aquacell:ro
       - emqx-data:/opt/emqx/data
     healthcheck:
       test: ["CMD", "/opt/emqx/bin/emqx", "ctl", "status"]

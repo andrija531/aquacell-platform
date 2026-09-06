@@ -28,7 +28,13 @@ out/
 !.env.example
 *.pem
 *.key
-!infrastructure/**/*.example.key
+*.crt
+*.csr
+*.srl
+# Broker certificates are per-host and the keys are private. Keep the
+# directory's own README so the layout is still documented.
+infrastructure/emqx/certs/*
+!infrastructure/emqx/certs/README.md
 
 # ---- Generated simulator output ----
 # Everything in data/ is reproducible from run_year.py; see apps/simulator/README
